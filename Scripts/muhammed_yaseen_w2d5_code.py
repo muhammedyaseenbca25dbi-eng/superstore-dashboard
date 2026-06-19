@@ -13,7 +13,7 @@ st.set_page_config(
 @st.cache_data(ttl=600)
 def load_data():
     return pd.read_csv(
-        r"C:\Users\Scalefusion admin\project_4.1\data\superstore_clean.csv",
+        r"output/superstore_cleaned.csv",
         parse_dates=["order_date", "ship_date"]
     )
 
@@ -43,8 +43,8 @@ with st.sidebar:
 
     selected_regions = st.multiselect(
         "Region",
-        options=sorted(df["Region"].unique()),
-        default=sorted(df["Region"].unique())
+        options=sorted(df["region"].unique()),
+        default=sorted(df["region"].unique())
     )
 
     selected_years = st.multiselect(
@@ -64,7 +64,7 @@ with st.sidebar:
     )
 
 filtered = df[
-    (df["Region"].isin(selected_regions)) &
+    (df["region"].isin(selected_regions)) &
     (df["order_year"].isin(selected_years))
 ]
 
@@ -105,10 +105,10 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-    st.subheader("Sales by Category")
+    st.subheader("Sales by category")
 
     category_sales = (
-        filtered.groupby("Category")["sales"]
+        filtered.groupby("category")["sales"]
         .sum()
         .sort_values(ascending=False)
     )
@@ -117,10 +117,10 @@ with col1:
 
 with col2:
 
-    st.subheader("Profit by Category")
+    st.subheader("Profit by category")
 
     category_profit = (
-        filtered.groupby("Category")["profit"]
+        filtered.groupby("category")["profit"]
         .sum()
         .sort_values(ascending=False)
     )
@@ -230,7 +230,7 @@ with tab2:
     filtered,
     x="sales",
     y="profit",
-    color="Category",          
+    color="category",          
     size="quantity",          
     hover_data=["sub_category"],
     title="Sales vs Profit by Category"
@@ -262,14 +262,14 @@ with tab3:
     st.subheader("Sales by Region")
 
     region_profit = (
-        filtered.groupby("Region")["profit"]
+        filtered.groupby("region")["profit"]
           .sum()
           .reset_index()
     )
 
     fig = px.pie(
         region_profit,
-        names="Region",
+        names="region",
         values="profit",
         hole=0.4,
         title="Region Share of Total Profit"
@@ -312,7 +312,7 @@ with tab4:
     sales_arr = filtered["sales"].values
     z_scores = (sales_arr - sales_arr.mean()) / sales_arr.std()
     outlier_mask = np.abs(z_scores) > 3
-    outlier_rows = filtered[outlier_mask][["order_id", "order_date", "sales", "profit", "Region"]]
+    outlier_rows = filtered[outlier_mask][["order_id", "order_date", "sales", "profit", "region"]]
     outlier_n = len(outlier_rows)
 
     if outlier_n > 0:
@@ -325,6 +325,41 @@ with tab4:
 
     with st.expander("Show Raw Data (First 50 Rows):"):
         st.dataframe(filtered.head(50), use_container_width=True)
+
+st.subheader("Chart Generator")
+
+chart_type = st.selectbox(
+    "Select Chart",
+    ["Bar", "Line"]
+)
+
+if chart_type == "Bar":
+
+    chart_data = (
+        filtered.groupby("category")["sales"]
+        .sum()
+    )
+
+    st.bar_chart(chart_data)
+
+else:
+
+    chart_data = (
+        filtered.groupby("order_year")["sales"]
+        .sum()
+    )
+
+    st.line_chart(chart_data)
+
+
+
+st.sidebar.download_button(
+    "⬇️ Download Data",
+    data=csv,
+    file_name="superstore_filtered.csv",
+    mime="text/csv"
+
+)
 
 
 
